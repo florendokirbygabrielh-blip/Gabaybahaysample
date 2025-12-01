@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>GabayBahay — home-hunting, simplified</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header id="site-header" class="site-header" role="banner">
+    <div class="container header-inner">
+      <a href="#home" class="logo" aria-label="GabayBahay Home">
+        <span class="logo-mark" aria-hidden="true">🏠</span>
+        <span class="logo-text">GabayBahay</span>
+      </a>
+
+      <nav id="main-nav" class="main-nav" role="navigation" aria-label="Primary">
+        <ul>
+          <li><a href="#home">Home</a></li>
+          <li><a href="#listings">Listings</a></li>
+          <li><a href="#about">About Us</a></li>
+        </ul>
+      </nav>
+
+      <button id="menu-toggle" class="menu-toggle" aria-expanded="false" aria-controls="main-nav" aria-label="Toggle navigation">
+        ☰
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <!-- HOME / HERO -->
+    <section id="home" class="hero" aria-labelledby="hero-title">
+      <div class="container hero-inner">
+        <h1 id="hero-title">GabayBahay</h1>
+        <p class="tagline">Find your next home away from home.</p>
+        <a class="cta" href="#listings">Start your stress-free hunt today!</a>
+      </div>
+    </section>
+
+    <!-- ABOUT -->
+    <section id="about" class="about container" aria-labelledby="about-title">
+      <h2 id="about-title">About Us</h2>
+      <p><strong>Vision:</strong> To make home-hunting near BatStateU-TNEU Lobo Campus simple, fast, and trustworthy.</p>
+      <p><strong>Mission:</strong> Provide a clean, accessible listing experience with up-to-date information so students can find safe and affordable lodging.</p>
+    </section>
+
+    <!-- LISTINGS -->
+    <section id="listings" class="listings container" aria-labelledby="listings-title">
+      <h2 id="listings-title">Listings</h2>
+
+      <!-- Controls -->
+      <aside class="filters" aria-label="Listing Filters">
+        <form id="filters-form" aria-controls="listings-grid">
+          <fieldset>
+            <legend>Budget</legend>
+            <label for="price-range">Max Budget (₱)</label>
+            <input
+              id="price-range"
+              type="range"
+              min="0"
+              max="6000"
+              step="50"
+              value="6000"
+              aria-valuemin="0"
+              aria-valuemax="6000"
+            />
+            <output id="price-output">₱6000</output>
+          </fieldset>
+
+          <fieldset>
+            <legend>Tenant Type</legend>
+            <label><input type="radio" name="tenant" value="All" checked /> All</label>
+            <label><input type="radio" name="tenant" value="All Male" /> All Male</label>
+            <label><input type="radio" name="tenant" value="All Female" /> All Female</label>
+            <label><input type="radio" name="tenant" value="Mixed" /> Mixed</label>
+          </fieldset>
+
+          <fieldset>
+            <legend>Room Type</legend>
+            <label><input type="checkbox" name="roomType" value="Bedspace" checked /> Bedspace</label>
+            <label><input type="checkbox" name="roomType" value="Solo" checked /> Solo</label>
+            <label><input type="checkbox" name="roomType" value="Studio" checked /> Studio</label>
+          </fieldset>
+
+          <button type="button" id="reset-filters">Reset filters</button>
+        </form>
+      </aside>
+
+      <!-- Listings grid -->
+      <section id="listings-grid" class="listings-grid" role="region" aria-live="polite">
+        <!-- Cards injected by script.js -->
+      </section>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="site-footer container" role="contentinfo">
+      <p>© <span id="year"></span> GabayBahay — BatStateU-TNEU Lobo Campus</p>
+    </footer>
+  </main>
+
+  <script src="script.js" defer></script>
+</body>
+</html>
