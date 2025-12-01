@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Listing Details — GabayBahay</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <header class="header">
+    <div class="header-inner">
+      <div class="brand">
+        <a href="index.html">GabayBahay</a>
+        <span class="tag">home-hunting, simplified.</span>
+      </div>
+    </div>
+  </header>
+
+  <main id="details-container" class="details-section" style="max-width:900px;margin:auto;padding:1rem;">
+    <h1>Loading...</h1>
+  </main>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const listingId = params.get("id");
+
+    async function loadDetails() {
+      const container = document.getElementById("details-container");
+
+      if (!listingId) {
+        container.innerHTML = "<p>No listing ID provided.</p>";
+        return;
+      }
+
+      try {
+        // try to load external JSON
+        let data = [];
+        try {
+          const res = await fetch("listings.json");
+          data = await res.json();
+        } catch (e) {
+          console.warn("Failed to fetch listings.json");
+        }
+
+        // fallback sample data (same structure as script.js)
+        if (!data.length) {
+          data = [
+            {"id":"spongebob-1","title":"Spongebob’s Pineapple House","min_price":2000,"max_price":5700,"room_type":"Studio","tenant_type":"Mixed","distance":"100 steps","wifi":"5G PLDT","features":"Giant Pineapple Structure, Direct Beach Access","image_url":"https://via.placeholder.com/400x300?text=Spongebob","description":"Full details here..."},
+            {"id":"patrick-1","title":"Patrick's Rock House","min_price":1150,"max_price":2000,"room_type":"Bedspace","tenant_type":"All Male","distance":"200 steps","wifi":"Basic Access","features":"Sea view","image_url":"https://via.placeholder.com/400x300?text=Patrick"}
+          ];
+        }
+
+        const listing = data.find(item => item.id === listingId);
+
+        if (!listing) {
+          container.innerHTML = "<p>Listing not found.</p>";
+          return;
+        }
+
+        // render
+        container.innerHTML = `
+          <h1>${listing.title}</h1>
+          <img src="${listing.image_url}" alt="${listing.title}" style="width:100%;border-radius:10px;margin:1rem 0;" />
+
+          <h2>Price</h2>
+          <p><strong>${listing.min_price === listing.max_price
+              ? "₱" + listing.min_price
+              : `₱${listing.min_price} - ₱${listing.max_price}`
+            }</strong></p>
+
+          <h2>Unit Features</h2>
+          <p>${listing.features || "No details provided."}</p>
+
+          <h2>WiFi</h2>
+          <p>${listing.wifi || "—"}</p>
+
+          <h2>Tenant Type</h2>
+          <p>${listing.tenant_type}</p>
+
+          <h2>Room Type</h2>
+          <p>${listing.room_type}</p>
+
+          <h2>Distance from Campus</h2>
+          <p>${listing.distance}</p>
+        `;
+      } catch (e) {
+        container.innerHTML = "<p>Error loading details.</p>";
+      }
+    }
+
+    loadDetails();
+  </script>
+
+</body>
+</html>
