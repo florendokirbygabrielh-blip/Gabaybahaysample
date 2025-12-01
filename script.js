@@ -1,265 +1,237 @@
-/* script.js for GabayBahay
-   - fetchListings tries /listings.json
-   - falls back to sampleData
-   - optionally can fetch Google Sheet CSV if window.SHEET_CSV_URL is set
+/* script.js - GabayBahay
+   - fetchListings() supports /listings.json fallback to sampleList
+   - optional: provide SHEET_CSV_URL in the top-level constant to load published Google Sheet CSV
 */
-(() => {
-  // configuration
-  const MAX_PRICE_DEFAULT = 6000;
-  const listingsGrid = document.getElementById('listingsGrid');
-  const priceRange = document.getElementById('priceRange');
-  const priceValue = document.getElementById('priceValue');
-  const tenantType = document.getElementById('tenantType');
-  const roomType = document.getElementById('roomType');
-  const fallbackNote = document.getElementById('fallback-note');
 
-  let rawListings = []; // array of listing objects
+const SHEET_CSV_URL = ""; // OPTIONAL: paste published CSV URL here (see instructions)
+const LISTINGS_JSON_PATH = "/listings.json"; // primary attempt
+const listingGrid = document.getElementById("listingGrid");
+const priceRange = document.getElementById("priceRange");
+const priceValue = document.getElementById("priceValue");
+const tenantSelect = document.getElementById("tenantSelect");
+const roomTypeSelect = document.getElementById("roomTypeSelect");
+const dataSourceNote = document.getElementById("dataSourceNote");
+const detailPanel = document.getElementById("detailPanel");
+const detailContent = document.getElementById("detailContent");
+const closeDetail = document.getElementById("closeDetail");
+const overlay = document.getElementById("overlay");
+document.getElementById("year").textContent = new Date().getFullYear();
 
-  // sample data for fallback
-  const sampleData = [
-    {
-      "id": "patrick-1",
-      "title": "Patrick's Rock House",
-      "min_price": 1150,
-      "max_price": 2000,
-      "room_type": "Bedspace",
-      "tenant_type": "All Male",
-      "distance": "200 steps",
-      "wifi": "Basic Access",
-      "features": "Sea view, friendly landlord",
-      "image_url": "https://via.placeholder.com/400x300?text=Patrick%27s+Rock+House"
-    },
-    {
-      "id":"squidward-1",
-      "title":"Squidward's Head House",
-      "price":2300,
-      "room_type":"Solo",
-      "tenant_type":"All Female",
-      "distance":"250 steps",
-      "wifi":"5G Converge",
-      "features":"Quiet neighborhood",
-      "image_url":"https://via.placeholder.com/400x300?text=Squidward%27s+Head+House"
-    },
-    {
-      "id":"spongebob-1",
-      "title":"Spongebob's Pineapple House",
-      "min_price":2000,
-      "max_price":5700,
-      "room_type":"Studio",
-      "tenant_type":"Mixed",
-      "distance":"100 steps",
-      "wifi":"5G PLDT",
-      "features":"Giant Pineapple Structure, Direct Beach Access",
-      "image_url":"https://via.placeholder.com/400x300?text=Spongebob%27s+Pineapple+House"
-    }
-  ];
-
-  // minimal CSV -> JSON parser (assumes first row headers)
-  function csvToObjects(csvText) {
-    const lines = csvText.trim().split(/\r?\n/).filter(Boolean);
-    if (!lines.length) return [];
-    const headers = lines[0].split(',').map(h => h.trim());
-    return lines.slice(1).map(line => {
-      // handle quoted commas
-      const values = [];
-      let cur = '', inQuotes = false;
-      for (let i = 0; i < line.length; i++) {
-        const ch = line[i];
-        if (ch === '"' ) { inQuotes = !inQuotes; continue; }
-        if (ch === ',' && !inQuotes) { values.push(cur.trim()); cur = ''; continue; }
-        cur += ch;
-      }
-      values.push(cur.trim());
-      const obj = {};
-      headers.forEach((h, i) => {
-        obj[h] = values[i] !== undefined ? values[i] : '';
-      });
-      return obj;
-    });
+// sample fallback dataset
+const SAMPLE_LISTINGS = [
+  {
+    id: "patrick-rock",
+    title: "Patrick's Rock House",
+    tenant: "All Male",
+    room_types: ["Bedspace","Solo"],
+    price_min: 1150,
+    price_max: 2000,
+    distance: "200 steps",
+    wifi: "Basic Access",
+    image: "https://via.placeholder.com/480x320?text=Patrick%27s+Rock+House",
+    description: "Cozy rock-house option. Bedspace and solo rooms available."
+  },
+  {
+    id: "squidward-head",
+    title: "Squidward's Head House",
+    tenant: "All Female",
+    room_types: ["Bedspace"],
+    price_min: 2300,
+    price_max: 2300,
+    distance: "250 steps",
+    wifi: "5G Converge",
+    image: "https://via.placeholder.com/480x320?text=Squidward%27s+Head+House",
+    description: "Quiet and tidy. Ideal for female tenants."
+  },
+  {
+    id: "spongebob-pineapple",
+    title: "Spongebob's Pineapple House",
+    tenant: "Mixed",
+    room_types: ["Bedspace","Studio"],
+    price_min: 2000,
+    price_max: 5700,
+    distance: "100 steps",
+    wifi: "5G PLDT",
+    image: "https://via.placeholder.com/480x320?text=Spongebob%27s+Pineapple+House",
+    description: "Unique pineapple structure with beach access and bright spaces."
   }
+];
 
-  // normalize a listing object to a predictable shape
-  function normalize(listing) {
-    // convert numeric fields
-    const out = Object.assign({}, listing);
-    // if price given as "price" convert to numeric and set min/max
-    if (out.price) {
-      const p = Number(out.price);
-      if (!isNaN(p)) { out.min_price = p; out.max_price = p; }
+// UI: header hide/show on scroll
+(function headerScroll() {
+  const header = document.getElementById("siteHeader");
+  let lastY = window.scrollY;
+  window.addEventListener("scroll", () => {
+    const y = window.scrollY;
+    if (y > lastY && y > 60) header.classList.add("hidden");
+    else header.classList.remove("hidden");
+    lastY = y;
+  });
+})();
+
+// detail panel open/close
+function openDetail(listing) {
+  detailContent.innerHTML = `
+    <img src="${listing.image}" alt="${listing.title}" style="width:100%;border-radius:8px;margin-bottom:8px" data-img-id="${listing.id}" />
+    <p class="muted">${listing.distance} • ${listing.wifi}</p>
+    <h3>${listing.title}</h3>
+    <p><strong>Tenant:</strong> ${listing.tenant}</p>
+    <p><strong>Room types:</strong> ${listing.room_types.join(", ")}</p>
+    <p><strong>Price:</strong> ₱${listing.price_min.toLocaleString()}${listing.price_max && listing.price_max !== listing.price_min ? " — ₱"+listing.price_max.toLocaleString() : ""}</p>
+    <p>${listing.description || ""}</p>
+  `;
+  detailPanel.classList.add("open");
+  detailPanel.setAttribute("aria-hidden","false");
+  overlay.hidden = false;
+  overlay.style.display = "block";
+  overlay.focus && overlay.focus();
+}
+
+function closeDetailPanel(){
+  detailPanel.classList.remove("open");
+  detailPanel.setAttribute("aria-hidden","true");
+  overlay.hidden = true;
+  overlay.style.display = "none";
+}
+
+closeDetail.addEventListener("click", closeDetailPanel);
+overlay.addEventListener("click", closeDetailPanel);
+window.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") closeDetailPanel();
+});
+
+// fetchListings: try /listings.json -> optional google sheet -> sample
+async function fetchListings(){
+  dataSourceNote.textContent = "Attempting to load /listings.json ...";
+  try {
+    const resp = await fetch(LISTINGS_JSON_PATH, {cache: "no-store"});
+    if (resp.ok){
+      const data = await resp.json();
+      dataSourceNote.textContent = "Loaded listings from /listings.json";
+      return normalizeListings(data);
+    } else {
+      dataSourceNote.textContent = "listings.json not found; trying Google Sheet if provided...";
+      throw new Error("listings.json not ok");
     }
-    if (out.min_price) out.min_price = Number(out.min_price);
-    if (out.max_price) out.max_price = Number(out.max_price);
-    // ensure room_type and tenant_type exist
-    out.room_type = out.room_type || out.roomType || out.room || "Bedspace";
-    out.tenant_type = out.tenant_type || out.tenantType || out.tenant || "Mixed";
-    out.title = out.title || out.name || "Untitled Listing";
-    out.image_url = out.image_url || out.image || ("https://via.placeholder.com/400x300?text=" + encodeURIComponent(out.title));
-    return out;
-  }
-
-  // Fetch listings from different sources
-  async function fetchListings() {
-    // Try SHEET_CSV_URL first if provided (so sheet can override local file)
-    const sheetUrl = window.SHEET_CSV_URL && window.SHEET_CSV_URL.trim();
-    if (sheetUrl) {
+  } catch(e){
+    // try sheet CSV if URL provided
+    if (SHEET_CSV_URL){
+      dataSourceNote.textContent = "Attempting to load published Google Sheet...";
       try {
-        const res = await fetch(sheetUrl);
-        if (!res.ok) throw new Error('Sheet fetch failed');
-        const csv = await res.text();
-        const objs = csvToObjects(csv).map(normalize);
-        rawListings = objs;
-        fallbackNote.hidden = true;
-        return;
-      } catch (e) {
-        console.warn('Sheet fetch failed, continuing to other sources.', e);
+        const resp = await fetch(SHEET_CSV_URL);
+        if (!resp.ok) throw new Error("sheet fetch failed");
+        const text = await resp.text();
+        const parsed = csvToJson(text);
+        dataSourceNote.textContent = "Loaded listings from published Google Sheet CSV.";
+        return normalizeListings(parsed);
+      } catch(err){
+        dataSourceNote.textContent = "Google Sheet fetch failed — using sample data.";
+        return SAMPLE_LISTINGS;
       }
+    } else {
+      dataSourceNote.textContent = "Using sample embedded listings (no listings.json or Google Sheet).";
+      return SAMPLE_LISTINGS;
     }
+  }
+}
 
-    // Try /listings.json (hosted with the site)
-    try {
-      const res = await fetch('/listings.json', {cache: 'no-store'});
-      if (!res.ok) throw new Error('listings.json not found');
-      const data = await res.json();
-      rawListings = data.map(normalize);
-      fallbackNote.hidden = true;
-      return;
-    } catch (e) {
-      console.warn('listings.json load failed:', e);
-    }
+// CSV to JSON simple parser (assumes header row)
+function csvToJson(csvText){
+  const rows = csvText.trim().split(/\r?\n/);
+  if (!rows.length) return [];
+  const headers = rows[0].split(",").map(h => h.trim());
+  const data = rows.slice(1).map(r=>{
+    const cols = r.split(",").map(c => c.trim());
+    const obj = {};
+    headers.forEach((h,i)=>obj[h]=cols[i] ?? "");
+    return obj;
+  });
+  return data;
+}
 
-    // fallback embedded
-    rawListings = sampleData.map(normalize);
-    fallbackNote.hidden = false;
+// normalize listings from different sources into consistent JS objects
+function normalizeListings(raw){
+  // if raw already an array of objects with expected fields, map them
+  return raw.map(r => {
+    // handle CSV string values vs proper objects
+    const id = r.id || (r.title ? r.title.toLowerCase().replace(/\s+/g,"-") : Math.random().toString(36).slice(2,9));
+    const title = r.title || r.Title || r.name || "Listing";
+    const tenant = r.tenant || r.Tenant || "Mixed";
+    const room_types = (r.room_types || r.room_types?.split?.(",") || r.RoomTypes || r.room_types)?.toString().split?.(",").map(s => s.trim()) || (r.room_type ? [r.room_type] : ["Bedspace"]);
+    const price_min = Number(r.price_min ?? r.priceMin ?? r.PriceMin ?? r.price ?? r.Price) || Number(r.price_min) || 0;
+    const price_max = Number(r.price_max ?? r.priceMax ?? r.PriceMax) || price_min;
+    const distance = r.distance || r.Distance || "";
+    const wifi = r.wifi || r.WiFi || r.wifi_type || "";
+    const image = r.image || r.Image || `https://via.placeholder.com/480x320?text=${encodeURIComponent(title)}`;
+    const description = r.description || r.Description || "";
+    return { id, title, tenant, room_types, price_min, price_max, distance, wifi, image, description };
+  });
+}
+
+// render function
+function renderListings(listings){
+  listingGrid.innerHTML = "";
+  const maxBudget = +priceRange.value;
+  const tenantFilter = tenantSelect.value;
+  const roomFilter = roomTypeSelect.value;
+
+  const filtered = listings.filter(l => {
+    const withinPrice = l.price_min <= maxBudget || l.price_max <= maxBudget;
+    const tenantOk = tenantFilter === "all" || l.tenant === tenantFilter;
+    const roomOk = roomFilter === "all" || (l.room_types && l.room_types.includes(roomFilter));
+    return withinPrice && tenantOk && roomOk;
+  });
+
+  if (!filtered.length){
+    listingGrid.innerHTML = `<p>No listings match your filters.</p>`;
+    return;
   }
 
-  // Render
-  function renderListings(listings) {
-    listingsGrid.innerHTML = '';
-    if (!listings.length) {
-      listingsGrid.innerHTML = '<p>No listings match your filters.</p>';
-      return;
-    }
-    const frag = document.createDocumentFragment();
-    listings.forEach(l => {
-      const card = document.createElement('article');
-      card.className = 'card';
-      card.setAttribute('tabindex', '0');
-      card.setAttribute('data-id', l.id || '');
-      card.innerHTML = `
-        <img class="media" src="${l.image_url}" alt="${escapeHtml(l.title)}" data-listing-image-id="${l.id || ''}" />
-        <div class="content">
-          <div style="display:flex;align-items:center;gap:0.5rem">
-            <h3>${escapeHtml(l.title)}</h3>
-            <div class="price">${formatPriceRange(l)}</div>
-          </div>
-          <div class="meta">
-            <div>Type: ${escapeHtml(l.room_type)}</div>
-            <div>Tenant: ${escapeHtml(l.tenant_type)}</div>
-            <div>Distance: ${escapeHtml(l.distance || '—')}</div>
-            <div>WiFi: ${escapeHtml(l.wifi || '—')}</div>
-          </div>
-          <div class="features">${escapeHtml(l.features || '')}</div>
-        </div>
-      `;
-      frag.appendChild(card);
+  filtered.forEach(l => {
+    const card = document.createElement("article");
+    card.className = "card";
+    card.setAttribute("tabindex","0");
+    card.innerHTML = `
+      <img src="${l.image}" alt="${l.title}" data-img-id="${l.id}" />
+      <div class="meta"><div>${l.distance || ""}</div><div class="price">₱${l.price_min.toLocaleString()}${l.price_max !== l.price_min ? " — ₱"+l.price_max.toLocaleString() : ""}</div></div>
+      <h4>${l.title}</h4>
+      <p class="muted">${l.wifi || ""}</p>
+      <div class="meta"><div class="muted">${l.tenant} • ${l.room_types.join(", ")}</div></div>
+      <div class="actions">
+        <button class="view-btn" data-id="${l.id}">View details</button>
+      </div>
+    `;
+    listingGrid.appendChild(card);
+  });
+
+  // attach listeners to view buttons
+  listingGrid.querySelectorAll(".view-btn").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      const id = e.currentTarget.dataset.id;
+      const listing = listings.find(x=>x.id === id);
+      openDetail(listing);
     });
-    listingsGrid.appendChild(frag);
-  }
+  });
+}
 
-  function escapeHtml(s) {
-    if (!s && s !== 0) return '';
-    return String(s).replace(/[&<>"']/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-  }
+// wire up filters
+priceRange.addEventListener("input", () => {
+  priceValue.value = priceRange.value;
+  refreshListings();
+});
+priceValue.value = priceRange.value;
+tenantSelect.addEventListener("change", refreshListings);
+roomTypeSelect.addEventListener("change", refreshListings);
 
-  function formatPriceRange(l) {
-    if (typeof l.min_price === 'number' && typeof l.max_price === 'number' && l.min_price !== l.max_price) {
-      return `₱${numberWithCommas(l.min_price)} - ₱${numberWithCommas(l.max_price)}`;
-    }
-    const p = l.min_price || l.max_price || l.price;
-    if (p) return `₱${numberWithCommas(p)}`;
-    return 'Contact';
-  }
+let cachedListings = [];
 
-  function numberWithCommas(x){
-    return String(x).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-  }
+// initial load
+async function refreshListings(){
+  renderListings(cachedListings);
+}
 
-  // Filtering logic
-  function applyFilters() {
-    const maxBudget = Number(priceRange.value) || MAX_PRICE_DEFAULT;
-    const tenant = tenantType.value || 'All';
-    const room = roomType.value || 'All';
-
-    const filtered = rawListings.filter(l => {
-      // price: if listing has min_price / max_price use max_price to compare
-      const listingMax = l.max_price || l.min_price || l.price || 0;
-      if (listingMax > maxBudget) return false;
-
-      // tenant type
-      if (tenant !== 'All' && (String(l.tenant_type || '').toLowerCase() !== tenant.toLowerCase())) return false;
-
-      // room type
-      if (room !== 'All' && (String(l.room_type || '').toLowerCase() !== room.toLowerCase())) return false;
-
-      return true;
-    });
-
-    renderListings(filtered);
-  }
-
-  // UI wiring
-  function setupFilters() {
-    // show price text
-    priceValue.textContent = `₱${priceRange.value}`;
-    priceRange.addEventListener('input', e => {
-      priceValue.textContent = `₱${e.target.value}`;
-      applyFilters();
-    });
-
-    tenantType.addEventListener('change', applyFilters);
-    roomType.addEventListener('change', applyFilters);
-  }
-
-  // Header hide/show on scroll
-  function setupHeaderScroll() {
-    const header = document.getElementById('site-header');
-    let lastY = window.scrollY;
-    let ticking = false;
-    window.addEventListener('scroll', () => {
-      if (!ticking) {
-        window.requestAnimationFrame(() => {
-          const y = window.scrollY;
-          if (y > lastY && y > 80) {
-            header.classList.add('hidden');
-          } else {
-            header.classList.remove('hidden');
-          }
-          lastY = y;
-          ticking = false;
-        });
-        ticking = true;
-      }
-    }, {passive:true});
-  }
-
-  // init
-  async function init() {
-    document.getElementById('year').textContent = new Date().getFullYear();
-    priceRange.max = 6000;
-    priceRange.value = 6000;
-    priceValue.textContent = `₱${priceRange.value}`;
-    setupFilters();
-    setupHeaderScroll();
-
-    try {
-      await fetchListings();
-    } catch (e) {
-      console.error(e);
-      rawListings = sampleData.map(normalize);
-    }
-    applyFilters();
-  }
-
-  // start
-  init();
+(async function init(){
+  const listings = await fetchListings();
+  cachedListings = listings;
+  renderListings(cachedListings);
 })();
