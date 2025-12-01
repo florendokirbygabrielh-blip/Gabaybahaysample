@@ -5,100 +5,102 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>GabayBahay — home-hunting, simplified</title>
   <link rel="stylesheet" href="styles.css" />
+  <meta name="description" content="GabayBahay — housing directory for BatStateU - TNEU Lobo Campus. Find your next home away from home." />
 </head>
 <body>
-  <header id="site-header" class="site-header" role="banner">
-    <div class="container header-inner">
-      <a href="#home" class="logo" aria-label="GabayBahay Home">
-        <span class="logo-mark" aria-hidden="true">🏠</span>
-        <span class="logo-text">GabayBahay</span>
-      </a>
-
-      <nav id="main-nav" class="main-nav" role="navigation" aria-label="Primary">
-        <ul>
-          <li><a href="#home">Home</a></li>
-          <li><a href="#listings">Listings</a></li>
-          <li><a href="#about">About Us</a></li>
-        </ul>
+  <header id="site-header" class="header">
+    <div class="header-inner">
+      <div class="brand" tabindex="0">
+        <a href="#home">GabayBahay</a>
+        <span class="tag">home-hunting, simplified.</span>
+      </div>
+      <nav aria-label="Primary" class="nav">
+        <a href="#home">Home</a>
+        <a href="#listings">Listings</a>
+        <a href="#about">About Us</a>
       </nav>
-
-      <button id="menu-toggle" class="menu-toggle" aria-expanded="false" aria-controls="main-nav" aria-label="Toggle navigation">
-        ☰
-      </button>
     </div>
   </header>
 
   <main>
-    <!-- HOME / HERO -->
-    <section id="home" class="hero" aria-labelledby="hero-title">
-      <div class="container hero-inner">
-        <h1 id="hero-title">GabayBahay</h1>
-        <p class="tagline">Find your next home away from home.</p>
+    <!-- HERO / HOME -->
+    <section id="home" class="hero">
+      <div class="hero-inner">
+        <h1>GabayBahay</h1>
+        <p class="lead">Find your next home away from home.</p>
         <a class="cta" href="#listings">Start your stress-free hunt today!</a>
       </div>
     </section>
 
     <!-- ABOUT -->
-    <section id="about" class="about container" aria-labelledby="about-title">
-      <h2 id="about-title">About Us</h2>
-      <p><strong>Vision:</strong> To make home-hunting near BatStateU-TNEU Lobo Campus simple, fast, and trustworthy.</p>
-      <p><strong>Mission:</strong> Provide a clean, accessible listing experience with up-to-date information so students can find safe and affordable lodging.</p>
+    <section id="about" class="about">
+      <h2>About Us</h2>
+      <div class="about-content">
+        <article>
+          <h3>Vision</h3>
+          <p>To be the most trusted student housing directory for BatStateU Lobo Campus — providing accessible, reliable listings that connect students to safe and affordable homes.</p>
+        </article>
+        <article>
+          <h3>Mission</h3>
+          <ul>
+            <li>Provide up-to-date housing information for students.</li>
+            <li>Offer easy filters to match students with affordable options.</li>
+            <li>Support landlords and administrators in sharing accurate listing data.</li>
+          </ul>
+        </article>
+      </div>
     </section>
 
     <!-- LISTINGS -->
-    <section id="listings" class="listings container" aria-labelledby="listings-title">
-      <h2 id="listings-title">Listings</h2>
+    <section id="listings" class="listings-section" aria-labelledby="listings-title">
+      <div class="listings-toolbar">
+        <div class="filter-row">
+          <label for="priceRange">Max Budget (₱) <span id="priceValue">₱6000</span></label>
+          <input id="priceRange" type="range" min="0" max="6000" step="50" value="6000" aria-label="Max budget slider" />
+        </div>
 
-      <!-- Controls -->
-      <aside class="filters" aria-label="Listing Filters">
-        <form id="filters-form" aria-controls="listings-grid">
-          <fieldset>
-            <legend>Budget</legend>
-            <label for="price-range">Max Budget (₱)</label>
-            <input
-              id="price-range"
-              type="range"
-              min="0"
-              max="6000"
-              step="50"
-              value="6000"
-              aria-valuemin="0"
-              aria-valuemax="6000"
-            />
-            <output id="price-output">₱6000</output>
-          </fieldset>
+        <div class="filter-row" role="group" aria-label="Tenant type filter">
+          <label>Tenant Type</label>
+          <select id="tenantType" aria-label="Tenant Type">
+            <option value="All">All</option>
+            <option value="All Male">All Male</option>
+            <option value="All Female">All Female</option>
+            <option value="Mixed">Mixed</option>
+          </select>
+        </div>
 
-          <fieldset>
-            <legend>Tenant Type</legend>
-            <label><input type="radio" name="tenant" value="All" checked /> All</label>
-            <label><input type="radio" name="tenant" value="All Male" /> All Male</label>
-            <label><input type="radio" name="tenant" value="All Female" /> All Female</label>
-            <label><input type="radio" name="tenant" value="Mixed" /> Mixed</label>
-          </fieldset>
+        <div class="filter-row" role="group" aria-label="Room type filter">
+          <label>Room Type</label>
+          <select id="roomType" aria-label="Room Type">
+            <option value="All">All</option>
+            <option value="Bedspace">Bedspace</option>
+            <option value="Solo">Solo</option>
+            <option value="Studio">Studio</option>
+          </select>
+        </div>
+      </div>
 
-          <fieldset>
-            <legend>Room Type</legend>
-            <label><input type="checkbox" name="roomType" value="Bedspace" checked /> Bedspace</label>
-            <label><input type="checkbox" name="roomType" value="Solo" checked /> Solo</label>
-            <label><input type="checkbox" name="roomType" value="Studio" checked /> Studio</label>
-          </fieldset>
+      <h2 id="listings-title" class="sr-only">Listings</h2>
+      <div id="listingsGrid" class="listings-grid" aria-live="polite">
+        <!-- cards generated here -->
+      </div>
 
-          <button type="button" id="reset-filters">Reset filters</button>
-        </form>
-      </aside>
-
-      <!-- Listings grid -->
-      <section id="listings-grid" class="listings-grid" role="region" aria-live="polite">
-        <!-- Cards injected by script.js -->
-      </section>
+      <div id="fallback-note" class="fallback-note" hidden>
+        Showing fallback sample data (no external listings.json or sheet URL found).
+      </div>
     </section>
-
-    <!-- FOOTER -->
-    <footer class="site-footer container" role="contentinfo">
-      <p>© <span id="year"></span> GabayBahay — BatStateU-TNEU Lobo Campus</p>
-    </footer>
   </main>
 
-  <script src="script.js" defer></script>
+  <footer class="site-footer">
+    <div>© <span id="year"></span> GabayBahay — BatStateU Lobo Campus</div>
+  </footer>
+
+  <script>
+    // Optional configuration:
+    // If you publish your Google Sheet CSV URL, paste it here (example: 'https://docs.google.com/spreadsheets/d/FILE_ID/export?format=csv&id=FILE_ID&gid=0')
+    // If left null or blank, the script will attempt /listings.json first.
+    window.SHEET_CSV_URL = ""; // <-- paste your published CSV URL here when ready
+  </script>
+  <script src="script.js"></script>
 </body>
 </html>
