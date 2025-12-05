@@ -44,7 +44,7 @@ const SAMPLE_LISTINGS = [
     description: "Quiet and tidy. Ideal for female tenants."
   },
    {
-    id: "patrick-rock",
+    id: "patrick-stone",
     title: "FrancisxLin Bh",
     tenant: "All Male",
     room_types: ["Bedspace","Solo"],
