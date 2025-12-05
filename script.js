@@ -43,6 +43,18 @@ const SAMPLE_LISTINGS = [
     image: "https://via.placeholder.com/480x320?text=Squidward%27s+Head+House",
     description: "Quiet and tidy. Ideal for female tenants."
   },
+   {
+    id: "patrick-rock",
+    title: "FrancisxLin Bh",
+    tenant: "All Male",
+    room_types: ["Bedspace","Solo"],
+    price_min: 1150,
+    price_max: 2000,
+    distance: "200 steps",
+    wifi: "Basic Access",
+    image: "https://via.placeholder.com/480x320?text=Patrick%27s+Rock+House",
+    description: "Cozy rock-house option. Bedspace and solo rooms available."
+  },
   {
     id: "spongebob-pineapple",
     title: "Spongebob's Pineapple House",
